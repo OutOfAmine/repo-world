@@ -6,7 +6,7 @@ An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/o
 
 ![Repo World demo: laravel.io as a pixel city](docs/demo.gif)
 
-**▶ [Play the laravel.io world in your browser](https://<you>.github.io/repo-world/)** (no install, works on phone)
+**▶ [Play the laravel.io world in your browser](https://OutOfAmine.github.io/repo-world/)** (no install, works on phone)
 
 ```
 > /repo-world turn this repo into a game
@@ -40,7 +40,7 @@ Good for: onboarding new devs · understanding a repo you inherited · tech-debt
 
 **Claude Code**
 ```bash
-git clone https://github.com/<you>/repo-world ~/.claude/skills/repo-world
+git clone https://github.com/OutOfAmine/repo-world ~/.claude/skills/repo-world
 ```
 
 **Claude.ai / desktop**: zip the folder → Settings → Capabilities → Skills → Upload.
