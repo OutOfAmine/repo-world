@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Repo World</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10101c;--panel:#1d1b2e;--panel2:#2b2845;--ink:#f6f1e1;--dim:#a39fbf;--gold:#f9c74f;--good:#90be6d;--bad:#f94144;--line:#4b4670}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden;font-family:"Press Start 2P",ui-monospace,monospace;touch-action:none;-webkit-user-select:none;user-select:none}
+canvas#game{display:block;width:100vw;height:100vh;image-rendering:pixelated;cursor:pointer;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.px{border:3px solid var(--line);box-shadow:0 0 0 3px #0008,inset 0 0 0 2px #0004;background:var(--panel)}
+#hud{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;font-size:9px;line-height:1.6}
+#hud>div{pointer-events:auto;padding:8px 10px}
+#where small{color:var(--dim);display:block;font-size:8px}
+#stats{display:flex;align-items:center;gap:10px}
+#stats button{background:var(--panel2);border:2px solid var(--line);padding:6px 8px;font-size:9px}
+#xpbar{width:70px;height:8px;background:#0006;border:2px solid var(--line)}
+#xpbar i{display:block;height:100%;background:var(--gold);width:0;transition:width .4s}
+#dialog{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(680px,calc(100vw - 20px));padding:14px 16px 18px;display:none;font-size:11px;line-height:1.9;z-index:5}
+#dialog h3{font-size:10px;margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#dialog h3 span.tag{font-size:7px;padding:3px 5px;background:var(--panel2);color:var(--dim)}
+#dialog p{min-height:3.8em;word-break:break-word}
+#dialog .more{position:absolute;right:12px;bottom:6px;font-size:9px;color:var(--gold);animation:blink 1s steps(2) infinite}
+#dialog code{color:var(--gold);font-family:inherit}
+@keyframes blink{50%{opacity:0}}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:8;padding:12px}
+.modal>.px{width:min(720px,100%);max-height:88vh;overflow:auto;padding:16px;font-size:10px;line-height:1.8}
+.modal h2{font-size:12px;margin-bottom:12px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.modal h2 button{background:var(--panel2);border:2px solid var(--line);padding:4px 8px;font-size:9px;color:var(--ink)}
+.quest{padding:10px;border:2px solid var(--line);margin-bottom:8px;background:var(--panel2)}
+.quest.done{opacity:.5}.quest.active{border-color:var(--gold)}
+.quest b{display:block;margin-bottom:4px}.quest small{color:var(--dim);font-size:8px}
+#minimap{width:100%;image-rendering:pixelated;background:#0b0b14;border:2px solid var(--line);touch-action:manipulation}
+#title{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:radial-gradient(ellipse at center,#2b2550 0%,#10101c 70%);padding:16px}
+#title .card{text-align:center;max-width:620px}
+#title h1{font-size:clamp(20px,6vw,40px);color:var(--gold);text-shadow:4px 4px 0 #a4161a,8px 8px 0 #0008;margin-bottom:14px;letter-spacing:2px}
+#title .repo{font-size:clamp(11px,3vw,15px);margin-bottom:6px}
+#title .tagline{font-size:9px;color:var(--dim);margin-bottom:22px;line-height:1.8}
+#title .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px}
+#title .grid div{padding:10px 4px;font-size:8px;color:var(--dim)}
+#title .grid b{display:block;font-size:13px;color:var(--ink);margin-bottom:6px}
+#start{background:var(--gold);color:#1d1b2e;border:none;padding:14px 26px;font-size:12px;box-shadow:0 5px 0 #b5830f}
+#start:active{transform:translateY(3px);box-shadow:0 2px 0 #b5830f}
+#title .keys{margin-top:20px;font-size:8px;color:var(--dim);line-height:2}
+#pad{position:fixed;inset:auto 0 calc(18px + env(safe-area-inset-bottom)) 0;display:none;justify-content:space-between;padding:0 18px;pointer-events:none;z-index:4}
+#dpad{position:relative;width:138px;height:138px;pointer-events:auto}
+#dpad button,#abtn{position:absolute;width:46px;height:46px;background:#1d1b2ecc;border:3px solid var(--line);font-size:14px;touch-action:none}
+#dpad [data-k=up]{left:46px;top:0}#dpad [data-k=down]{left:46px;bottom:0}#dpad [data-k=left]{left:0;top:46px}#dpad [data-k=right]{right:0;top:46px}
+#abtn{position:relative;width:66px;height:66px;border-radius:50%;background:#a4161acc;border-color:#f94144;pointer-events:auto;align-self:flex-end;font-size:16px}
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);padding:10px 14px;font-size:10px;display:none;z-index:9;color:var(--gold);text-align:center;line-height:1.7}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin:10px 0;font-size:8px;color:var(--dim)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+body.talking #dpad{visibility:hidden}
+@media (max-width:560px){#hud{font-size:8px}#xpbar{width:44px}#dialog{font-size:10px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="px" id="where">…</div>
+  <div class="px" id="stats">
+    <span id="lvl">LV 1</span><div id="xpbar"><i></i></div>
+    <button id="btnQ" aria-label="Quests">📜</button><button id="btnM" aria-label="Map">🗺</button>
+  </div>
+</div>
+
+<div id="dialog" class="px" role="dialog" aria-live="polite"><h3 id="dname"></h3><p id="dtext"></p><span class="more">▼</span></div>
+<div id="toast" class="px"></div>
+
+<div class="modal" id="mQuest"><div class="px"><h2>📜 Quest Log <button data-close>✕</button></h2><div id="qlist"></div></div></div>
+<div class="modal" id="mMap"><div class="px"><h2>🗺 World Map <button data-close>✕</button></h2>
+  <canvas id="minimap"></canvas>
+  <div class="legend" id="legend"></div>
+  <div style="font-size:8px;color:var(--dim)">Click anywhere to fast-travel. Lines = imports between districts.</div>
+</div></div>
+
+<div id="pad"><div id="dpad"><button data-k="up">▲</button><button data-k="left">◀</button><button data-k="right">▶</button><button data-k="down">▼</button></div><button id="abtn">A</button></div>
+
+<div id="title"><div class="card">
+  <h1>REPO WORLD</h1>
+  <div class="repo" id="tRepo"></div>
+  <div class="tagline" id="tTag"></div>
+  <div class="grid" id="tGrid"></div>
+  <button id="start">▶ PRESS START</button>
+  <div class="keys">WASD / ARROWS move · E / SPACE talk<br>Q quests · M map · ESC close<br>CLICK to travel · WHEEL / +- zoom</div>
+</div></div>
+
+<script>
+"use strict";
+const WORLD = "__WORLD_JSON__";
+const LORE = "__LORE_JSON__";
+
+/* ---------- utils ---------- */
+const T = 16, $ = s => document.querySelector(s);
+const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const rand = mulberry(hash(WORLD.meta.name));
+const base = p => p.split('/').pop();
+const fmt = n => n >= 1000 ? (n / 1000).toFixed(n >= 1e4 ? 0 : 1) + 'k' : String(n);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const safe = s => esc(s).replace(/&lt;(\/?)code&gt;/g, '<$1code>'); // lore may only use <code>
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+const ROLES = {
+  controller: ['#3a86ff', 'Gatekeeper'], model: ['#2a9d8f', 'Record Keeper'], service: ['#8338ec', 'Craftsman'],
+  middleware: ['#e76f51', 'Guard'], job: ['#f4a261', 'Messenger'], request: ['#e9b100', 'Scribe'],
+  component: ['#fb5607', 'Artisan'], store: ['#06a77d', 'Banker'], hook: ['#ef476f', 'Hookmaster'],
+  route: ['#118ab2', 'Pathfinder'], config: ['#6c757d', 'Elder'], util: ['#9c6644', 'Tinkerer'],
+  test: ['#8d99ae', 'Inspector'], migration: ['#7f5539', 'Mason'], view: ['#d4a373', 'Painter'], other: ['#b5838d', 'Villager'],
+};
+const QUARTER = {
+  controller: "Gatekeepers' Quarter", model: 'The Archives', service: "Craftsmen's Row", middleware: 'The Watchtower',
+  job: 'Courier Docks', request: "Scribes' Hall", component: "Artisans' Market", store: 'Bank District', hook: 'Hook Bay',
+  route: 'Crossroads', config: "Elders' Keep", util: "Tinkerers' Alley", test: 'Training Grounds', migration: 'The Quarry',
+  view: 'Gallery Lane', other: 'Old Town',
+};
+const role = r => ROLES[r] || ROLES.other;
+
+/* ---------- world model ---------- */
+const lore = LORE || {};
+const LD = lore.districts || {}, LN = lore.npcs || {};
+const files = {};      // path -> file (+district)
+const blocks = [];     // laid-out districts
+WORLD.districts.forEach(d => {
+  const L = LD[d.name] || {};
+  const b = { ...d, type: 'code', title: L.name || QUARTER[d.mainRole] || 'Old Town', lore: L.lore, items: d.files };
+  d.files.forEach(f => { f.district = b; files[f.path] = f; });
+  blocks.push(b);
+});
+if (WORLD.graveyard?.length) blocks.push({ id: 'grave', name: 'graveyard', title: lore.graveyardName || 'The Graveyard', type: 'grave', items: WORLD.graveyard, mainRole: 'migration' });
+if (WORLD.heroes?.length) blocks.push({ id: 'heroes', name: 'hall-of-heroes', title: lore.heroesName || 'Hall of Heroes', type: 'heroes', items: WORLD.heroes, mainRole: 'config' });
+if (WORLD.cycles?.length) blocks.push({ id: 'rift', name: 'the-rift', title: lore.riftName || 'The Rift', type: 'rift', items: WORLD.cycles, mainRole: 'hook' });
+
+/* ---------- layout: shelf packing ---------- */
+const G = 4, EDGE = 3;
+blocks.forEach(b => {
+  const n = b.items.length;
+  b.cols = Math.max(3, Math.min(14, Math.ceil(Math.sqrt(n * 1.6))));
+  b.rows = Math.ceil(n / b.cols);
+  b.w = b.cols * 4 + 3; b.h = b.rows * 4 + 4;
+});
+(() => {
+  const area = blocks.reduce((s, b) => s + (b.w + G) * (b.h + G), 0);
+  const maxW = Math.max(Math.ceil(Math.sqrt(area) * 1.3), ...blocks.map(b => b.w));
+  const sorted = [...blocks].sort((a, b) => b.h - a.h);
+  let x = 0, y = 0, rowH = 0;
+  sorted.forEach(b => {
+    if (x && x + b.w > maxW) { x = 0; y += rowH + G; rowH = 0; }
+    b.x = EDGE + G + x; b.y = EDGE + G + y; x += b.w + G; rowH = Math.max(rowH, b.h);
+  });
+})();
+const MW = Math.max(...blocks.map(b => b.x + b.w)) + G + EDGE;
+const MH = Math.max(...blocks.map(b => b.y + b.h)) + G + EDGE;
+const ROAD = 0, GRASS = 1, FENCE = 2, BLD = 3, TREE = 4;
+const grid = new Uint8Array(MW * MH);
+const at = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? TREE : grid[y * MW + x];
+const put = (x, y, v) => { if (x >= 0 && y >= 0 && x < MW && y < MH) grid[y * MW + x] = v; };
+for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (x < EDGE || y < EDGE || x >= MW - EDGE || y >= MH - EDGE) put(x, y, TREE);
+
+const actors = []; // interactables
+blocks.forEach(b => {
+  for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
+    const edge = x === b.x || y === b.y || x === b.x + b.w - 1 || y === b.y + b.h - 1;
+    put(x, y, edge ? FENCE : GRASS);
+  }
+  const mx = b.x + (b.w >> 1), my = b.y + (b.h >> 1);
+  [[mx - 1, b.y], [mx, b.y], [mx - 1, b.y + b.h - 1], [mx, b.y + b.h - 1], [b.x, my], [b.x, my - 1], [b.x + b.w - 1, my], [b.x + b.w - 1, my - 1]].forEach(([x, y]) => put(x, y, GRASS));
+  b.gate = { x: mx, y: b.y - 1 };
+  actors.push({ kind: 'sign', x: b.x + 2.5, y: b.y + 2, block: b });
+  b.items.forEach((it, i) => {
+    const cx = b.x + 2 + (i % b.cols) * 4, cy = b.y + 3 + Math.floor(i / b.cols) * 4;
+    if (b.type === 'code') {
+      for (let yy = 0; yy < 2; yy++) for (let xx = 0; xx < 3; xx++) put(cx + xx, cy + yy, BLD);
+      it.cx = cx; it.cy = cy;
+      actors.push({ kind: it.boss ? 'boss' : 'npc', x: cx + 1.5, y: cy + 2.85, file: it, seed: hash(it.path) });
+    } else if (b.type === 'grave') { put(cx + 1, cy + 1, BLD); actors.push({ kind: 'tomb', x: cx + 1.5, y: cy + 2.6, grave: it, tx: cx + 1, ty: cy + 1 }); }
+    else if (b.type === 'heroes') { put(cx + 1, cy + 1, BLD); actors.push({ kind: 'hero', x: cx + 1.5, y: cy + 2.6, hero: it, rank: i, tx: cx + 1, ty: cy + 1 }); }
+    else if (b.type === 'rift') { actors.push({ kind: 'portal', x: cx + 1.5, y: cy + 1.8, cycle: it, seed: i }); }
+  });
+});
+const solid = (tx, ty) => { const v = at(tx, ty); return v === FENCE || v === BLD || v === TREE; };
+
+/* ---------- pixel art ---------- */
+const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255; const k = f < 0 ? 0 : 255, p = Math.abs(f); r = Math.round((k - r) * p + r); g = Math.round((k - g) * p + g); b = Math.round((k - b) * p + b); return `rgb(${r},${g},${b})`; };
+const map = document.createElement('canvas'); map.width = MW * T; map.height = MH * T;
+const m = map.getContext('2d');
+const R = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+
+function drawGround() {
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
+    const v = at(tx, ty), px = tx * T, py = ty * T, r = mulberry(tx * 7919 + ty * 104729);
+    if (v === ROAD) {
+      R(m, px, py, T, T, '#c9b48a');
+      for (let i = 0; i < 4; i++) R(m, px + ((r() * 14) | 0), py + ((r() * 14) | 0), 2 + (r() * 3 | 0), 2, r() < .5 ? '#b49e74' : '#d8c59c');
+    } else if (v === TREE) {
+      R(m, px, py, T, T, '#3f7d3a');
+      R(m, px + 2, py + 1, 12, 11, '#2d5e2c'); R(m, px + 3, py + 2, 9, 7, '#3a7a36'); R(m, px + 5, py + 3, 3, 3, '#56a04c'); R(m, px + 7, py + 12, 2, 4, '#6b4423');
+    } else {
+      R(m, px, py, T, T, '#5aa34a');
+      for (let i = 0; i < 5; i++) R(m, px + ((r() * 15) | 0), py + ((r() * 15) | 0), 1, 2, r() < .6 ? '#4c9140' : '#6fb85c');
+      if (r() < .04) { R(m, px + 6, py + 6, 2, 2, ['#ffd166', '#ef476f', '#ffffff'][(r() * 3) | 0]); }
+    }
+  }
+}
+function drawFence(b) {
+  for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
+    if (at(x, y) !== FENCE) continue;
+    const px = x * T, py = y * T, horiz = y === b.y || y === b.y + b.h - 1;
+    if (horiz) { R(m, px, py + 6, T, 2, '#8b5a2b'); R(m, px, py + 11, T, 2, '#8b5a2b'); R(m, px + 2, py + 3, 3, 12, '#a0693a'); R(m, px + 11, py + 3, 3, 12, '#a0693a'); }
+    else { R(m, px + 6, py, 2, T, '#8b5a2b'); R(m, px + 6, py + 2, 4, 4, '#a0693a'); R(m, px + 6, py + 10, 4, 4, '#a0693a'); }
+  }
+}
+function drawHouse(f) {
+  const px = f.cx * T, py = f.cy * T, [col] = role(f.role), r = mulberry(hash(f.path));
+  if (f.boss) {
+    R(m, px + 2, py - 14, 44, 46, '#2b1f3a'); R(m, px + 2, py - 14, 44, 4, '#1a1226');
+    for (let i = 0; i < 5; i++) R(m, px + 2 + i * 9, py - 20, 6, 6, '#2b1f3a');
+    for (let i = 0; i < 3; i++) { R(m, px + 9 + i * 12, py - 4, 5, 7, '#ff4d6d'); R(m, px + 9 + i * 12, py + 10, 5, 7, '#ff4d6d'); }
+    R(m, px + 19, py + 20, 10, 12, '#120b1a');
+    return;
+  }
+  const big = f.loc > 180, h = big ? 22 : 16, top = py + 32 - h - 8;
+  R(m, px + 2, top + 8, 44, h, '#efe3c8'); R(m, px + 2, top + 8 + h - 3, 44, 3, '#cdbf9f');
+  for (let i = 0; i < 3; i++) R(m, px + 6 + i * 14, top + 12, 6, 6, '#7ec8e3'), R(m, px + 6 + i * 14, top + 12, 6, 2, '#5aa3c0');
+  if (big) for (let i = 0; i < 3; i++) if (i !== 1) R(m, px + 6 + i * 14, top + 21, 6, 5, '#7ec8e3');
+  R(m, px + 20, py + 22, 8, 10, shade(col, -.45)); R(m, px + 26, py + 27, 1, 1, '#ffd166');
+  for (let i = 0; i < 9; i++) R(m, px + i * 2 - 1 + 2, top - i + 9, 48 - i * 4 + 0, 2, i % 2 ? col : shade(col, -.15));
+  R(m, px, top + 7, 48, 3, shade(col, -.35));
+  if (r() < .5) R(m, px + 36, top - 4, 5, 9, '#7f5539');
+  if (f.todos) R(m, px + 4, py + 26, 6, 6, '#fff3b0'), R(m, px + 5, py + 27, 4, 1, '#c9a227');
+}
+function drawSpecial(b) {
+  b.items.forEach((it, i) => {
+    const cx = b.x + 2 + (i % b.cols) * 4, cy = b.y + 3 + Math.floor(i / b.cols) * 4, px = (cx + 1) * T, py = (cy + 1) * T;
+    if (b.type === 'grave') { R(m, px + 2, py + 2, 12, 14, '#8d8f9c'); R(m, px + 3, py + 1, 10, 2, '#8d8f9c'); R(m, px + 4, py, 8, 1, '#8d8f9c'); R(m, px + 7, py + 4, 2, 7, '#5c5e6b'); R(m, px + 5, py + 6, 6, 2, '#5c5e6b'); R(m, px + 1, py + 15, 14, 2, '#3e6b34'); }
+    if (b.type === 'heroes') { const gold = i === 0; R(m, px + 1, py + 10, 14, 6, '#6c757d'); R(m, px + 2, py + 11, 12, 1, gold ? '#f9c74f' : '#adb5bd'); R(m, px + 5, py - 6, 6, 6, gold ? '#e0b43c' : '#b8bcc4'); R(m, px + 4, py, 8, 10, gold ? '#d4a017' : '#9aa0a8'); R(m, px + 3, py + 1, 2, 5, gold ? '#d4a017' : '#9aa0a8'); R(m, px + 11, py - 3, 2, 8, gold ? '#d4a017' : '#9aa0a8'); }
+    if (b.type === 'rift') { R(m, px - 8, py + 4, 32, 12, '#3c1c4d'); R(m, px - 6, py + 6, 28, 8, '#271233'); }
+  });
+}
+function drawSign(b) {
+  const px = (b.x + 2) * T, py = (b.y + 1) * T + 2;
+  m.font = '8px "Press Start 2P", monospace';
+  const t1 = b.type === 'code' ? b.name : b.title, t2 = b.type === 'code' ? b.title : '';
+  const w = Math.min((b.w - 4) * T, Math.max(m.measureText(t1).width, m.measureText(t2).width) + 16);
+  R(m, px + 6, py + 20, 4, 8, '#6b4423'); R(m, px, py, w, 22, '#8b5a2b'); R(m, px + 2, py + 2, w - 4, 18, '#b07d48');
+  m.fillStyle = '#2b1a0d'; m.fillText(t1, px + 8, py + 11, w - 14);
+  if (t2) { m.fillStyle = '#5a3a1a'; m.font = '6px "Press Start 2P", monospace'; m.fillText(t2, px + 8, py + 19, w - 14); }
+}
+function renderMap() {
+  drawGround(); blocks.forEach(drawFence);
+  blocks.forEach(b => { if (b.type === 'code') b.items.forEach(drawHouse); else drawSpecial(b); drawSign(b); });
+}
+
+function person(c, x, y, col, hair, frame, dir, s = 1) {
+  const bob = frame ? 1 : 0;
+  R(c, x - 5, y - 1, 10, 3, '#0003');
+  R(c, x - 3, y - 4, 2, 4 - bob, '#2b2d42'); R(c, x + 1, y - 4, 2, 3 + bob, '#2b2d42');
+  R(c, x - 4, y - 11, 8, 7, col); R(c, x - 4, y - 5, 8, 1, shade(col, -.3));
+  R(c, x - 5, y - 10, 1, 4, col); R(c, x + 4, y - 10, 1, 4, col);
+  R(c, x - 3, y - 17, 6, 6, '#f1c6a5');
+  R(c, x - 3, y - 18, 6, 2, hair); if (dir !== 'down') R(c, x - 3, y - 17, 6, dir === 'up' ? 5 : 2, hair);
+  if (dir === 'down') { R(c, x - 2, y - 15, 1, 1, '#1d1b2e'); R(c, x + 1, y - 15, 1, 1, '#1d1b2e'); }
+  if (dir === 'left') R(c, x - 2, y - 15, 1, 1, '#1d1b2e'); if (dir === 'right') R(c, x + 1, y - 15, 1, 1, '#1d1b2e');
+}
+const HAIR = ['#3d2817', '#1d1b2e', '#b5651d', '#e9c46a', '#6c757d', '#9d4edd', '#c1121f'];
+
+/* ---------- dialogue ---------- */
+const nameOf = f => {
+  if (f.entities?.[0]?.name) return f.entities[0].name;
+  const parts = f.path.split('/'), stem = parts.pop().replace(/\.(blade\.)?\w+$/, '');
+  return /^(index|main|mod|__init__)$/.test(stem) && parts.length ? parts.pop() + '/' + stem : stem;
+};
+function linesFor(a) {
+  if (a.kind === 'npc' || a.kind === 'boss') {
+    const f = a.file, n = LN[f.path];
+    if (n?.lines?.length) return { name: nameOf(f), tag: n.title || role(f.role)[1], lines: n.lines.map(safe) };
+    const name = nameOf(f), L = [];
+    if (a.kind === 'boss') {
+      L.push(`I AM ${name.toUpperCase()}! ${f.loc} lines${f.methodCount ? `, ${f.methodCount} methods` : ''}.${f.in ? ` ${f.in} souls depend on me.` : ''}`);
+      L.push('Every change you make to me breaks something somewhere. That is my power.');
+      L.push(`Split me into smaller pieces... if you dare. You will find me at <code>${esc(f.path)}</code>.`);
+      return { name, tag: 'BOSS · God ' + (f.role === 'test' ? 'Test' : 'Class'), lines: L };
+    }
+    const r = role(f.role)[1];
+    L.push(`Hey! I'm <code>${esc(name)}</code>, ${/^[AEIOU]/.test(r) ? 'an' : 'a'} ${r} of ${esc(f.district.name)}. I live at <code>${esc(f.path)}</code> (${f.loc} lines).`);
+    if (f.methods?.length) L.push(`My moves: ${f.methods.slice(0, 5).map(x => `<code>${esc(x)}()</code>`).join(', ')}${f.methodCount > 5 ? ` and ${f.methodCount - 5} more` : ''}.`);
+    if (f.deps?.length) L.push(`I rely on ${f.deps.slice(0, 3).map(p => `<code>${esc(nameOf(files[p] || { path: p }))}</code>`).join(', ')}${f.deps.length > 3 ? '...' : ''}.`);
+    if (f.usedBy?.length) L.push(`${f.in} citizens import me. ${f.in > 15 ? 'Basically, I hold this city together.' : 'Not bad, huh?'}`);
+    else if (!['test', 'controller', 'route', 'migration', 'view', 'config', 'component'].includes(f.role)) L.push('Nobody imports me... maybe I am dead code. Or maybe they call me by magic.');
+    if (f.hot) L.push(`I've been rebuilt ${f.churn} times. Please. No more refactors.`);
+    if (f.todos) L.push(`I'm carrying ${f.todos} TODO${f.todos > 1 ? 's' : ''}. Don't judge me.`);
+    return { name, tag: r, lines: L };
+  }
+  if (a.kind === 'tomb') { const g = a.grave; return { name: 'Here lies ' + base(g.path), tag: 'R.I.P.', lines: [`<code>${esc(g.path)}</code>`, `Removed on ${g.date} by ${esc(g.author)}.`, `Last words: "${esc(g.msg)}"`] }; }
+  if (a.kind === 'hero') { const h = a.hero, total = WORLD.meta.commits || 1; return { name: h.name, tag: a.rank === 0 ? 'Founder' : 'Hero', lines: [`${h.commits} commits · ${(h.commits / total * 100).toFixed(1)}% of this world was shaped by these hands.`, a.rank === 0 ? 'The one who laid the first stone.' : 'Their name is carved in the git log forever.'] }; }
+  if (a.kind === 'portal') { const c = a.cycle.map(p => `<code>${esc(nameOf(files[p] || { path: p }))}</code>`); return { name: 'A Rift', tag: 'Circular Dependency', lines: ['The air shimmers. Space folds back on itself...', c.join(' → ') + ' → ' + c[0], 'These import each other. Break one link to close the rift.'] }; }
+  if (a.kind === 'sign') {
+    const b = a.block;
+    if (b.type !== 'code') return { name: b.title, tag: 'Sign', lines: [b.type === 'grave' ? `${b.items.length} deleted files rest here.` : b.type === 'heroes' ? 'Statues of the top contributors.' : `${b.items.length} circular dependencies tore holes in reality here.`] };
+    const roads = WORLD.roads.filter(r => r.from === b.id).slice(0, 3).map(r => blocks.find(x => x.id === r.to)?.name).filter(Boolean);
+    const L = [`Welcome to <code>${esc(b.name)}</code> · ${b.title}. ${b.items.length} buildings, ${fmt(b.loc)} lines.`];
+    if (b.lore) L.push(safe(b.lore));
+    if (roads.length) L.push(`Most traffic goes to: ${roads.map(x => `<code>${esc(x)}</code>`).join(', ')}.`);
+    return { name: b.name, tag: 'District', lines: L };
+  }
+}
+
+/* ---------- quests ---------- */
+const all = Object.values(files);
+function autoQuests() {
+  const q = [], top = (k, f = () => true) => all.filter(f).sort((a, b) => b[k] - a[k])[0];
+  const pillar = top('in'); if (pillar?.in) q.push({ title: 'The Pillar', text: `Everyone in this city leans on one citizen (${pillar.in} imports). Find them.`, target: pillar.path, xp: 100 });
+  const boss = top('loc', f => f.boss && f.role !== 'test') || top('loc', f => f.boss); if (boss) q.push({ title: 'Slay the God Class', text: `A ${boss.loc}-line monster terrorizes ${boss.district.name}. Confront it.`, target: boss.path, xp: 200 });
+  const hot = top('churn'); if (hot?.churn > 3) q.push({ title: 'The Hot Seat', text: `One house was rebuilt ${hot.churn} times. Find the most edited file.`, target: hot.path, xp: 150 });
+  const r = WORLD.routes?.length && all.find(f => f.role === 'controller'); if (r) q.push({ title: 'Follow the Request', text: `Requests enter through the Gatekeepers. Talk to one in ${r.district.name}.`, target: 'role:controller', xp: 80 });
+  if (WORLD.graveyard?.length) q.push({ title: 'Pay Respects', text: 'Visit the graveyard of deleted files.', target: 'kind:tomb', xp: 60 });
+  if (WORLD.heroes?.length) q.push({ title: 'Meet the Founder', text: 'Find the statue of the top contributor.', target: 'hero:0', xp: 60 });
+  if (WORLD.cycles?.length) q.push({ title: 'Close the Rift', text: 'Something tore a hole in the import graph. Investigate.', target: 'kind:portal', xp: 120 });
+  return q;
+}
+const QUESTS = (lore.quests?.length ? lore.quests : autoQuests()).map((q, i) => ({ id: i, xp: 100, ...q }));
+const SAVE = 'repo-world:' + WORLD.meta.name;
+const save = store.get(SAVE, { done: [], xp: 0 });
+const matches = (q, a) => {
+  const t = q.target || '';
+  if (t.startsWith('kind:')) return a.kind === t.slice(5);
+  if (t.startsWith('role:')) return a.file?.role === t.slice(5);
+  if (t.startsWith('hero:')) return a.kind === 'hero' && a.rank === +t.slice(5);
+  if (t.startsWith('district:')) return a.kind === 'sign' && a.block.name === t.slice(9);
+  return a.file?.path === t;
+};
+const activeQuest = () => QUESTS.find(q => !save.done.includes(q.id));
+const targetActor = q => q && actors.find(a => matches(q, a));
+function checkQuests(a) {
+  QUESTS.forEach(q => {
+    if (!save.done.includes(q.id) && matches(q, a)) {
+      save.done.push(q.id); save.xp += q.xp; store.set(SAVE, save);
+      toast(`★ QUEST COMPLETE ★<br>${esc(q.title)} · +${q.xp} XP`); burst(player.x, player.y - 20); hud();
+    }
+  });
+}
+
+/* ---------- state + input ---------- */
+const cv = $('#game'), cx = cv.getContext('2d');
+let S = 3, baseS = 3, zoom = 1, vw = 0, vh = 0, dpr = 1, camX = 0, camY = 0;
+const spawn = { x: (EDGE + G / 2) * T + 8, y: (EDGE + G / 2) * T + 8 };
+const player = { ...store.get(SAVE + ':pos', spawn), dir: 'down', moving: false, t: 0 };
+if (solid(Math.floor(player.x / T), Math.floor(player.y / T))) Object.assign(player, spawn);
+const keys = new Set(); let dialog = null, started = false, particles = [], near = null;
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  vw = innerWidth; vh = innerHeight;
+  cv.width = vw * dpr; cv.height = vh * dpr;
+  baseS = Math.max(2, Math.min(4, Math.round(Math.min(vw, vh) / (T * 17)))); S = baseS * zoom;
+}
+// zoom: mouse wheel, +/- keys, pinch
+function setZoom(z) { zoom = Math.max(.35, Math.min(2.5, z)); S = baseS * zoom; }
+cv.addEventListener('wheel', e => { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, { passive: false });
+const pts = new Map(); let pinch = 0;
+cv.addEventListener('pointerup', e => pts.delete(e.pointerId)); cv.addEventListener('pointercancel', e => pts.delete(e.pointerId));
+cv.addEventListener('pointermove', e => {
+  if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size !== 2) return;
+  const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) setZoom(zoom * d / pinch); pinch = d;
+});
+addEventListener('resize', resize); resize();
+
+const KM = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+addEventListener('keydown', e => {
+  if (!started) { if (e.code === 'Enter' || e.code === 'Space') start(); return; }
+  if (KM[e.code]) { keys.add(KM[e.code]); e.preventDefault(); }
+  if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); act(); }
+  if (e.code === 'KeyQ') openModal('#mQuest'); if (e.code === 'KeyM') openModal('#mMap');
+  if (e.code === 'Escape') { closeModals(); closeDialog(); }
+  if (e.key === '+' || e.key === '=') setZoom(zoom * 1.2); if (e.key === '-' || e.key === '_') setZoom(zoom / 1.2); if (e.key === '0') setZoom(1);
+});
+addEventListener('keyup', e => KM[e.code] && keys.delete(KM[e.code]));
+addEventListener('blur', () => keys.clear());
+document.querySelectorAll('#dpad button').forEach(b => {
+  const k = b.dataset.k, on = e => { e.preventDefault(); keys.add(k); }, off = e => { e.preventDefault(); keys.delete(k); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
+});
+$('#abtn').addEventListener('pointerdown', e => { e.preventDefault(); act(); });
+$('#dialog').addEventListener('pointerdown', e => { e.preventDefault(); act(); });
+if (matchMedia('(pointer:coarse)').matches) $('#pad').style.display = 'flex';
+
+/* ---------- dialog ---------- */
+let typer = 0;
+function showLine() {
+  const d = dialog, html = d.lines[d.i]; $('#dname').innerHTML = `${esc(d.name)} <span class="tag">${esc(d.tag)}</span>`;
+  const p = $('#dtext'); clearInterval(typer); d.typing = true;
+  const tmp = document.createElement('div'); tmp.innerHTML = html; const plain = tmp.textContent; let n = 0;
+  typer = setInterval(() => { n += 2; if (n >= plain.length) { clearInterval(typer); d.typing = false; p.innerHTML = html; } else p.textContent = plain.slice(0, n); }, 16);
+  $('#dialog').style.display = 'block'; document.body.classList.add('talking');
+}
+function closeDialog() { dialog = null; clearInterval(typer); $('#dialog').style.display = 'none'; document.body.classList.remove('talking'); }
+function act() {
+  if (document.querySelector('.modal[style*="flex"]')) return;
+  if (dialog) {
+    if (dialog.typing) { clearInterval(typer); dialog.typing = false; $('#dtext').innerHTML = dialog.lines[dialog.i]; return; }
+    if (++dialog.i >= dialog.lines.length) { const a = dialog.actor; closeDialog(); checkQuests(a); return; }
+    return showLine();
+  }
+  if (!near) return;
+  dialog = { ...linesFor(near), i: 0, actor: near }; showLine();
+}
+
+/* ---------- click to fast-travel ---------- */
+function freeNear(x, y) { // nearest walkable tile centre to world px (x, y)
+  const tx = Math.floor(x / T), ty = Math.floor(y / T);
+  for (let r = 0; r < 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++)
+    if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !solid(tx + dx, ty + dy)) return [(tx + dx) * T + 8, (ty + dy) * T + 8];
+  return null;
+}
+function travel(x, y, dir = 'down') { const f = freeNear(x, y); if (!f) return false; [player.x, player.y] = f; player.dir = dir; burst(player.x, player.y - 10); store.set(SAVE + ':pos', { x: player.x, y: player.y }); return true; }
+cv.addEventListener('pointerdown', e => {
+  pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size > 1) { pinch = 0; return; }
+  if (!started || dialog || document.querySelector('.modal[style*="flex"]')) return;
+  const wx = camX + e.clientX / S, wy = camY + e.clientY / S;
+  let hit = null, best = 1.3 * T;
+  for (const a of actors) { const d = Math.hypot(a.x * T - wx, a.y * T - 10 - wy); if (d < best) { best = d; hit = a; } }
+  if (hit) { if (travel(hit.x * T, (hit.y + 1) * T, 'up')) { near = hit; act(); } return; }
+  travel(wx, wy);
+});
+
+/* ---------- update ---------- */
+const SPEED = 5.5 * T;
+function tryMove(nx, ny) {
+  const box = [[-5, -4], [5, -4], [-5, 1], [5, 1]];
+  return !box.some(([ox, oy]) => solid(Math.floor((nx + ox) / T), Math.floor((ny + oy) / T)));
+}
+let lastSave = 0;
+function update(dt, now) {
+  let dx = 0, dy = 0;
+  if (!dialog) { if (keys.has('left')) dx--; if (keys.has('right')) dx++; if (keys.has('up')) dy--; if (keys.has('down')) dy++; }
+  player.moving = !!(dx || dy);
+  if (player.moving) {
+    const l = Math.hypot(dx, dy), sx = dx / l * SPEED * dt, sy = dy / l * SPEED * dt;
+    if (tryMove(player.x + sx, player.y)) player.x += sx;
+    if (tryMove(player.x, player.y + sy)) player.y += sy;
+    player.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    player.t += dt;
+    if (now - lastSave > 2000) { store.set(SAVE + ':pos', { x: player.x, y: player.y }); lastSave = now; }
+  }
+  near = null; let best = 1.4 * T;
+  for (const a of actors) { const d = Math.hypot(a.x * T - player.x, a.y * T - player.y); if (d < best) { best = d; near = a; } }
+  particles = particles.filter(p => (p.t -= dt) > 0); particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; });
+  const tx = player.x / T, ty = player.y / T, cur = blocks.find(b => tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h);
+  const label = cur ? `<b>${esc(cur.type === 'code' ? cur.name : cur.title)}</b><small>${esc(cur.type === 'code' ? cur.title : '')}</small>` : `<b>${esc(WORLD.meta.name)}</b><small>${esc(WORLD.meta.framework)} · the roads</small>`;
+  if ($('#where').innerHTML !== label) $('#where').innerHTML = label;
+}
+
+/* ---------- draw ---------- */
+function burst(x, y) { for (let i = 0; i < 40; i++) particles.push({ x, y, vx: (Math.random() - .5) * 220, vy: -Math.random() * 200, t: .6 + Math.random() * .6, c: ['#f9c74f', '#f94144', '#90be6d', '#4cc9f0'][i % 4] }); }
+function draw(now) {
+  const W = vw / S, H = vh / S, t = now / 1000;
+  camX = Math.round(Math.max(0, Math.min(map.width - W, player.x - W / 2)));
+  camY = Math.round(Math.max(0, Math.min(map.height - H, player.y - H / 2)));
+  if (map.width < W) camX = Math.round((map.width - W) / 2); if (map.height < H) camY = Math.round((map.height - H) / 2);
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false;
+  cx.fillStyle = '#2d5e2c'; cx.fillRect(0, 0, cv.width, cv.height);
+  cx.setTransform(S * dpr, 0, 0, S * dpr, -camX * S * dpr, -camY * S * dpr); cx.imageSmoothingEnabled = false;
+  cx.drawImage(map, 0, 0);
+  const vis = a => a.x * T > camX - 40 && a.x * T < camX + W + 40 && a.y * T > camY - 40 && a.y * T < camY + H + 60;
+
+  // hot roofs: smoke + flames
+  for (const f of all) if (f.hot && f.cx !== undefined && f.cx * T > camX - 60 && f.cx * T < camX + W + 20 && f.cy * T > camY - 60 && f.cy * T < camY + H + 20) {
+    for (let i = 0; i < 3; i++) { const ph = (t * 1.2 + i / 3 + (hash(f.path) % 10) / 10) % 1; R(cx, f.cx * T + 38 - ph * 4, f.cy * T - 6 - ph * 18, 4 - ph * 2, 4 - ph * 2, `rgba(200,200,210,${.7 - ph * .7})`); }
+    const fl = Math.sin(t * 20 + f.cx) > 0 ? 1 : 0; R(cx, f.cx * T + 6, f.cy * T - 2 - fl, 4, 4 + fl, '#ff9f1c'); R(cx, f.cx * T + 7, f.cy * T - 1, 2, 2, '#ffd166');
+  }
+  const draws = actors.filter(vis).map(a => ({ y: a.y, a }));
+  draws.push({ y: player.y / T, p: true });
+  draws.sort((a, b) => a.y - b.y);
+  for (const d of draws) {
+    if (d.p) { person(cx, Math.round(player.x), Math.round(player.y), '#f94144', '#1d1b2e', player.moving && (player.t * 8 | 0) % 2, player.dir); R(cx, Math.round(player.x) - 4, Math.round(player.y) - 20, 8, 2, '#f9c74f'); continue; }
+    const a = d.a, x = Math.round(a.x * T), y = Math.round(a.y * T);
+    if (a.kind === 'npc') { const f = a.file, bob = Math.sin(t * 2 + a.seed) > .6; person(cx, x, y, role(f.role)[0], HAIR[a.seed % HAIR.length], bob, 'down'); }
+    else if (a.kind === 'boss') {
+      const f = a.file, s = Math.sin(t * 3 + a.seed) * 2, size = Math.min(30, 16 + f.loc / 60);
+      R(cx, x - size / 2, y - 2, size, 4, '#0004');
+      R(cx, x - size / 2, y - size + s, size, size - 2 - s, '#7b2cbf'); R(cx, x - size / 2 + 2, y - size + 2 + s, size - 4, 4, '#9d4edd');
+      R(cx, x - 6, y - size + 6 + s, 4, 4, '#fff'); R(cx, x + 2, y - size + 6 + s, 4, 4, '#fff'); R(cx, x - 5, y - size + 7 + s, 2, 2, '#f94144'); R(cx, x + 3, y - size + 7 + s, 2, 2, '#f94144');
+      for (let i = 0; i < 4; i++) R(cx, x - 6 + i * 3, y - size + 14 + s, 2, 3, '#fff');
+      R(cx, x - 2, y - size - 6 + s, 4, 5, '#ffd166'); R(cx, x - size / 2 - 2, y - size + 10 + s, 3, 6, '#7b2cbf'); R(cx, x + size / 2 - 1, y - size + 10 + s, 3, 6, '#7b2cbf');
+      R(cx, x - 14, y - size - 12, 28, 4, '#1d1b2e'); R(cx, x - 13, y - size - 11, Math.max(2, 26 * Math.min(1, f.loc / 1200)), 2, '#f94144');
+    }
+    else if (a.kind === 'portal') { for (let i = 0; i < 6; i++) { const ang = t * 3 + i * Math.PI / 3, r = 6 + Math.sin(t * 4 + i) * 2; R(cx, x + Math.cos(ang) * r * 1.4 - 2, y - 10 + Math.sin(ang) * r - 2, 4, 4, i % 2 ? '#c77dff' : '#4cc9f0'); } R(cx, x - 3, y - 13, 6, 6, '#e0aaff'); }
+  }
+  // interaction prompt
+  if (near && !dialog) {
+    const x = Math.round(near.x * T), y = Math.round(near.y * T) - (near.kind === 'boss' ? 46 : 30) + (Math.sin(t * 6) > 0 ? 1 : 0);
+    R(cx, x - 6, y - 8, 12, 11, '#1d1b2e'); R(cx, x - 5, y - 7, 10, 9, '#f9c74f'); R(cx, x - 1, y + 3, 2, 2, '#1d1b2e');
+    cx.fillStyle = '#1d1b2e'; cx.font = '6px "Press Start 2P", monospace'; cx.fillText('!', x - 2, y);
+    const label = near.file ? base(near.file.path) : near.kind === 'sign' ? '' : near.kind === 'tomb' ? 'R.I.P.' : near.kind === 'hero' ? near.hero.name : '';
+    if (label) { cx.font = '5px "Press Start 2P", monospace'; const w = cx.measureText(label).width + 6; R(cx, x - w / 2, y - 18, w, 9, '#1d1b2ee0'); cx.fillStyle = '#f6f1e1'; cx.fillText(label, x - w / 2 + 3, y - 11); }
+  }
+  particles.forEach(p => R(cx, p.x, p.y, 3, 3, p.c));
+  // quest compass
+  const qa = targetActor(activeQuest());
+  if (qa && !dialog) {
+    const ax = qa.x * T - player.x, ay = qa.y * T - player.y, dist = Math.hypot(ax, ay);
+    if (dist > 3 * T) {
+      const ang = Math.atan2(ay, ax), ox = player.x + Math.cos(ang) * 26, oy = player.y - 10 + Math.sin(ang) * 26;
+      cx.save(); cx.translate(Math.round(ox), Math.round(oy)); cx.rotate(ang);
+      cx.fillStyle = '#f9c74f'; cx.beginPath(); cx.moveTo(6, 0); cx.lineTo(-4, -5); cx.lineTo(-2, 0); cx.lineTo(-4, 5); cx.closePath(); cx.fill(); cx.restore();
+    }
+  }
+}
+
+/* ---------- HUD / modals ---------- */
+function hud() {
+  const lvl = 1 + Math.floor(save.xp / 250), pct = (save.xp % 250) / 2.5;
+  $('#lvl').textContent = 'LV ' + lvl; $('#xpbar i').style.width = pct + '%';
+  const aq = activeQuest();
+  $('#qlist').innerHTML = QUESTS.map(q => `<div class="quest ${save.done.includes(q.id) ? 'done' : q === aq ? 'active' : ''}"><b>${save.done.includes(q.id) ? '✔' : q === aq ? '➤' : '○'} ${esc(q.title)}</b>${esc(q.text)}<br><small>+${q.xp} XP${q.hint && q !== aq ? '' : q.hint ? ' · hint: ' + esc(q.hint) : ''}</small></div>`).join('') +
+    `<small style="color:var(--dim)">${save.done.length}/${QUESTS.length} complete · ${save.xp} XP</small>`;
+}
+let toastT = 0;
+function toast(html) { const el = $('#toast'); el.innerHTML = html; el.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => el.style.display = 'none', 2600); }
+function openModal(id) { closeModals(); closeDialog(); hud(); $(id).style.display = 'flex'; if (id === '#mMap') drawMinimap(); keys.clear(); }
+function closeModals() { document.querySelectorAll('.modal').forEach(x => x.style.display = 'none'); }
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModals);
+document.querySelectorAll('.modal').forEach(md => md.addEventListener('pointerdown', e => { if (e.target === md) closeModals(); }));
+$('#btnQ').onclick = () => openModal('#mQuest'); $('#btnM').onclick = () => openModal('#mMap');
+
+const mm = $('#minimap'), mc = mm.getContext('2d');
+function drawMinimap() {
+  const k = Math.max(2, Math.floor(Math.min(680, innerWidth - 60) / MW)); mm.width = MW * k; mm.height = MH * k;
+  mc.fillStyle = '#c9b48a'; mc.fillRect(0, 0, mm.width, mm.height);
+  mc.fillStyle = '#2d5e2c'; mc.fillRect(0, 0, mm.width, EDGE * k); mc.fillRect(0, mm.height - EDGE * k, mm.width, EDGE * k); mc.fillRect(0, 0, EDGE * k, mm.height); mc.fillRect(mm.width - EDGE * k, 0, EDGE * k, mm.height);
+  const cen = b => [(b.x + b.w / 2) * k, (b.y + b.h / 2) * k], maxW = Math.max(1, ...WORLD.roads.map(r => r.w));
+  blocks.forEach(b => { mc.fillStyle = shade(role(b.mainRole)[0], .35); mc.fillRect(b.x * k, b.y * k, b.w * k, b.h * k); mc.strokeStyle = '#1d1b2e'; mc.lineWidth = 2; mc.strokeRect(b.x * k, b.y * k, b.w * k, b.h * k); });
+  WORLD.roads.forEach(r => { const a = blocks.find(b => b.id === r.from), b = blocks.find(x => x.id === r.to); if (!a || !b) return; const [x1, y1] = cen(a), [x2, y2] = cen(b); mc.strokeStyle = `rgba(29,27,46,${.25 + .6 * r.w / maxW})`; mc.lineWidth = 1 + 4 * r.w / maxW; mc.beginPath(); mc.moveTo(x1, y1); mc.lineTo(x2, y2); mc.stroke(); });
+  mc.font = `${Math.max(7, k * 2.2)}px "Press Start 2P", monospace`; mc.textAlign = 'center';
+  blocks.forEach(b => { const [x, y] = cen(b); const t = b.type === 'code' ? b.name : b.title; const w = mc.measureText(t).width + 8; mc.fillStyle = '#1d1b2ee6'; mc.fillRect(x - w / 2, y - k * 2.2 - 4, w, k * 2.2 + 9); mc.fillStyle = '#f6f1e1'; mc.fillText(t, x, y + 2); });
+  const qa = targetActor(activeQuest()); if (qa) { mc.fillStyle = '#f9c74f'; mc.beginPath(); mc.arc(qa.x * k, qa.y * k, k * 1.6 + 2, 0, 7); mc.fill(); mc.strokeStyle = '#1d1b2e'; mc.stroke(); }
+  mc.fillStyle = '#f94144'; mc.fillRect(player.x / T * k - k, player.y / T * k - k, k * 2 + 2, k * 2 + 2);
+  mm.onpointerdown = e => {
+    const r = mm.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * MW, y = (e.clientY - r.top) / r.height * MH;
+    const b = blocks.find(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
+    if (!travel(x * T, y * T)) return; closeModals(); toast('✦ Fast travel → ' + esc(b ? (b.type === 'code' ? b.name : b.title) : 'the roads'));
+  };
+  $('#legend').innerHTML = [...new Set(blocks.map(b => b.mainRole))].map(r => `<span><i style="background:${shade(role(r)[0], .35)}"></i>${QUARTER[r] || r}</span>`).join('');
+}
+
+/* ---------- boot ---------- */
+const M = WORLD.meta;
+document.title = `${M.name} · Repo World`;
+$('#tRepo').textContent = `${lore.title || M.name}`;
+$('#tTag').textContent = lore.tagline || `A ${M.framework} kingdom${M.since ? ' founded in ' + M.since.slice(0, 4) : ''}. Explore it, talk to its classes, slay its god objects.`;
+$('#tGrid').innerHTML = [[blocks.filter(b => b.type === 'code').length, 'districts'], [fmt(M.files), 'citizens'], [fmt(M.loc), 'lines'], [M.bosses, 'bosses'], [fmt(M.commits || 0), 'commits'], [WORLD.cycles.length, 'rifts']]
+  .map(([v, l]) => `<div class="px"><b>${v}</b>${l}</div>`).join('');
+function start() {
+  if (started) return; started = true; $('#title').style.display = 'none'; hud();
+  const q = activeQuest(); if (q) setTimeout(() => toast(`NEW QUEST<br>${esc(q.title)}`), 400);
+}
+$('#start').onclick = start;
+
+let last = performance.now();
+function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; if (started) update(dt, now); draw(now); requestAnimationFrame(loop); }
+const fontReady = document.fonts ? Promise.race([document.fonts.load('8px "Press Start 2P"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();
+fontReady.then(() => { renderMap(); requestAnimationFrame(loop); });
+</script>
+</body>
+</html>

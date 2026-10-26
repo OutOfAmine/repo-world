@@ -1,0 +1,48 @@
+{
+  "title": "The Kingdom of Laravel.io",
+  "tagline": "Founded in 2012 by Dries Vints. 2.8k commits of forum threads, articles and spam wars.",
+  "districts": {
+    "Models": { "name": "The Archives", "lore": "Every user, thread and reply in the kingdom is recorded here. Half the city imports someone from this hill." },
+    "Http/Controllers": { "name": "Gatekeepers' Quarter", "lore": "Every HTTP request knocks on one of these doors first. They validate, delegate to Jobs, and return a view." },
+    "Jobs": { "name": "Courier Docks", "lore": "Controllers never do the work themselves: they dispatch a Job from here. CreateThread, UpdateReply, BanUser..." },
+    "tests": { "name": "Training Grounds", "lore": "76 inspectors drill the city daily. ArticleTest alone grew into a 500-line monster." },
+    "resources": { "name": "Gallery Lane", "lore": "Blade painters. The forum thread page has been repainted more than 100 times." },
+    "Filament": { "name": "The Admin Citadel", "lore": "Moderators rule from here. Careful: three rifts were opened between Resources and their Pages." }
+  },
+  "npcs": {
+    "app/Models/User.php": {
+      "title": "The Elder",
+      "lines": [
+        "I am <code>User</code>. 119 citizens import me. I am the most depended-upon soul in this kingdom.",
+        "I know your <code>github_id</code>, your <code>bio</code>, and if you were ever <code>banned_reason</code>... I remember everything.",
+        "I carry 71 methods and three ranks: <code>DEFAULT</code>, <code>MODERATOR</code>, <code>ADMIN</code>. Ask <code>UserPolicy</code> what each may do.",
+        "Some say I've grown too big. 448 lines... One day someone will split me into traits. Not today."
+      ]
+    },
+    "app/Models/Thread.php": {
+      "title": "Keeper of Questions",
+      "lines": [
+        "I'm <code>Thread</code>. Every forum question starts with me.",
+        "When a reply answers me, call <code>markSolution()</code> and I'll remember who solved it, and who marked it.",
+        "Rebuilt 70 times. Locking, spam reports, solutions, subscriptions... everyone wanted a feature from me."
+      ]
+    },
+    "app/Http/Controllers/Forum/ThreadsController.php": {
+      "title": "Gatekeeper of the Forum",
+      "lines": [
+        "Requests to <code>/forum</code> come through my door.",
+        "I never write to the database myself. I validate with a Request, then dispatch <code>CreateThread</code> or <code>UpdateThread</code> to the Courier Docks.",
+        "Want to follow a request end-to-end? Start with me, then visit the Docks."
+      ]
+    }
+  },
+  "quests": [
+    { "title": "The Elder", "text": "One citizen is imported by 119 others. Find the heart of the kingdom.", "target": "app/Models/User.php", "xp": 100 },
+    { "title": "Ask a Question", "text": "Forum requests enter through one gate. Find the forum's gatekeeper.", "target": "app/Http/Controllers/Forum/ThreadsController.php", "hint": "Gatekeepers' Quarter", "xp": 120 },
+    { "title": "Who Solves It?", "text": "Find the citizen who knows how to mark a reply as the solution.", "target": "app/Models/Thread.php", "xp": 120 },
+    { "title": "The Monster of the Training Grounds", "text": "A 500-line test grew into a god. Confront it.", "target": "tests/Feature/ArticleTest.php", "xp": 200 },
+    { "title": "Pay Respects", "text": "Visit the graveyard of deleted files.", "target": "kind:tomb", "xp": 60 },
+    { "title": "Meet the Founder", "text": "Find the golden statue.", "target": "hero:0", "xp": 60 },
+    { "title": "Close the Rift", "text": "Three Filament resources import their own pages and vice versa. Investigate the Rift.", "target": "kind:portal", "xp": 120 }
+  ]
+}
